@@ -1,9 +1,10 @@
 #! /usr/bin/python3
 
 """
-list all packages and it's details into one file
+List all packages and it's contents into one json file.
+From https://github.com/praiskup/dnf-hacks/blob/main/list_all_packages.py
 
-Precreate BaseOS, AppStream and PowerTools directories somewhere, and run
+HOWTO: Precreate BaseOS, AppStream and PowerTools directories somewhere, and run
 the following shell snippet:
 
 for a in *; do mkdir $a/repodata; done
