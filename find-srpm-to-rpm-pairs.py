@@ -27,6 +27,7 @@ base.repos.add_new_repo(
     "test",
     base.conf,
     baseurl=(sys.argv[1],),
+    module_hotfixes=1,
 )
 
 # read the remote metadata
