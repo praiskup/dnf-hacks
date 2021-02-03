@@ -6,9 +6,11 @@ list all packages and it's details into one file
 Precreate BaseOS, AppStream and PowerTools directories somewhere, and run
 the following shell snippet:
 
+for a in *; do mkdir $a/repodata; done
 for repo in *; do
     pushd $repo/repodata
-    lftp -e "mirror ; exit" http://mirror.centos.org/centos/8/$repo/x86_64/os/repodata/
+    # lftp -e "mirror ; exit" http://mirror.centos.org/centos/8/$repo/x86_64/os/repodata/
+    lftp -e "mirror ; exit" https://vault.centos.org/8.2.2004/$repo/x86_64/os/repodata/
     popd
 done
 """
