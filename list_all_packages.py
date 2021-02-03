@@ -15,9 +15,12 @@ done
 
 import argparse
 import logging
+import json
+import os
 import re
 
 import dnf
+import hawkey
 
 
 logging.basicConfig(format='%(levelname)s: %(message)s')
@@ -59,6 +62,7 @@ def _init_and_get_dnf(repos):
             reponame,
             base.conf,
             baseurl=(repo,),
+            module_hotfixes=1,
         )
 
     assert found
@@ -69,18 +73,48 @@ def _init_and_get_dnf(repos):
 
 
 def _main():
+    """
+    {
+        "basename": {
+            "rpm": ...,
+            "sha256": ...,
+            "license": ...,
+            "srpm": ...,
+            "file-provides": [],
+            "provides": [],
+            "requires": [],
+            "url": "download_url",
+            "file-requires": [], # drop ??
+            "modularitylabel": "", # reference metadata don't match reality
+        }
+    }
+    """
+
     parser = _get_arg_parser()
     args = parser.parse_args()
     dnf_base = _init_and_get_dnf(args.repos)
 
     query = dnf_base.sack.query().filter(reponame__neq="@System")
-    all_packages = list(query)
-    #import ipdb
-    #ipdb.set_trace()
-    for package in all_packages:
-        print("{} {} {} {} {}".format(package.name, package.version,
-            package.release, package.repoid, package.arch))
+    packages = {}
+    for package in query:
+        basename = os.path.basename(package.location)
+        if basename in packages:
+            LOG.error("package %s is duplicated", basename)
+            continue
+        pkgdata = {}
+        pkgdata["rpm"] = basename
+        pkgdata["license"] = package.license
+        assert hawkey.chksum_name(package.chksum[0]) == "sha256"
+        pkgdata["sha256"] = package.chksum[1].hex()
+        pkgdata["srpm"] = package.sourcerpm
+        pkgdata["requires"] = [str(r) for r in package.requires]
+        pkgdata["provides"] = [str(r) for r in package.provides]
+        pkgdata["file-provides"] = package.files
+        pkgdata["url"] = package.remote_location()
 
+        packages[basename] = pkgdata
+
+    print(json.dumps(packages))
 
 if __name__ == "__main__":
     _main()
