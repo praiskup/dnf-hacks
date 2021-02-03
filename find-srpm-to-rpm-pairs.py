@@ -34,8 +34,8 @@ base.fill_sack()
 
 # query the metadata
 query = base.sack.query()
-query_avaiable = query.available()
-available_packages = list(query_avaiable)
+remote = query.filter(reponame__neq="@System")
+available_packages = list(remote)
 
 found_srpms = set()
 found_mapping = {}
