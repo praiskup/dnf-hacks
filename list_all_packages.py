@@ -156,7 +156,8 @@ def _main():
         if ".module_" in package:
             assert "modularitylabel" in packages[package]
 
-    print(json.dumps(packages))
+    print(json.dumps(packages, sort_keys=True, indent=4))
+
 
 if __name__ == "__main__":
     _main()
