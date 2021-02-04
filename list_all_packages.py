@@ -99,6 +99,13 @@ def _main():
 
     query = dnf_base.sack.query().filter(reponame__neq="@System")
     packages = {}
+
+    # We parse modular metadata separately from normal metadata, and if we want
+    # to assign the modularitylabel back to the packages (artifacts) we have to
+    # be able to search in the "packages" dictionary quickly using the artifacts
+    # format (nevra).
+    map_by_artifact_name = {}
+
     for package in query:
         basename = os.path.basename(package.location)
         if basename in packages:
@@ -116,6 +123,38 @@ def _main():
         pkgdata["url"] = package.remote_location()
 
         packages[basename] = pkgdata
+
+        lookup_string = "{}-{}:{}-{}.{}".format(
+            package.name, package.epoch, package.version, package.release,
+            package.arch,
+        )
+
+        assert lookup_string not in map_by_artifact_name
+        map_by_artifact_name[lookup_string] = pkgdata
+
+    mbase = dnf.module.module_base.ModuleBase(dnf_base)
+    for module in mbase.get_modules('*')[0]:
+        artifacts = module.getArtifacts()
+        module = module.getFullIdentifier()
+        for artifact in artifacts:
+            try:
+                package = map_by_artifact_name[artifact]
+            except KeyError:
+                if artifact.endswith(".src"):
+                    continue
+                if "debuginfo" in artifact:
+                    continue
+                if "debugsource" in artifact:
+                    continue
+                raise
+
+            assert "modularitylabel" not in package
+            package["modularitylabel"] = module
+
+    # check that all seemingly modular packages have modularitylabel
+    for package in packages:
+        if ".module_" in package:
+            assert "modularitylabel" in packages[package]
 
     print(json.dumps(packages))
 
